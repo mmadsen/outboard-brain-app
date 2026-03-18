@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "outboard_brain_app",
+  "project_id": "34345574-9bc2-4345-b33f-7ca67af1431a"
+}
