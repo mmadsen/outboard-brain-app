@@ -1,10 +1,10 @@
 import React from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { Link, Tabs } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { colors } from '@/constants/Theme';
 
-// AIDEV-NOTE: Tab layout with 4 main sections: Capture, Search, Browse, Stats
+// AIDEV-NOTE: Tab layout with 5 main sections: Today, Capture, Search, Browse, Stats
 export default function TabLayout() {
   return (
     <Tabs
@@ -23,17 +23,25 @@ export default function TabLayout() {
           <Link href="/settings" asChild>
             <Pressable style={{ marginRight: 16 }}>
               {({ pressed }) => (
-                <SymbolView
-                  name={{ ios: 'gearshape', android: 'settings', web: 'settings' }}
-                  size={22}
-                  tintColor={colors.textSecondary}
-                  style={{ opacity: pressed ? 0.5 : 1 }}
-                />
+                <Text style={{ fontSize: 22, opacity: pressed ? 0.5 : 1 }}>⚙</Text>
               )}
             </Pressable>
           </Link>
         ),
       }}>
+      <Tabs.Screen
+        name="today"
+        options={{
+          title: 'Today',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{ ios: 'sun.max', android: 'today', web: 'today' }}
+              tintColor={color}
+              size={24}
+            />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="index"
         options={{

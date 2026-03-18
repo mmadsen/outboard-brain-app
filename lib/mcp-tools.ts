@@ -1,8 +1,8 @@
-// AIDEV-NOTE: Typed wrappers for each MCP tool. These map 1:1 to the server's tool definitions.
-// Currently the server returns human-readable text, not structured JSON.
-// When the server adds JSON response mode, refactor per oba-ra4.
+// AIDEV-NOTE: Typed wrappers for each MCP tool. These map 1:1 to the V2 server's tool definitions.
+// list_thoughts and search_thoughts support output_format: 'json' for structured responses (oba-71d).
+// capture, update, delete, and stats do not support output_format and return text.
 
-import { callTool } from './mcp-client';
+import { callTool, McpError } from './mcp-client';
 
 // --- Types ---
 
@@ -15,27 +15,48 @@ export type ThoughtType =
   | 'daily'
   | 'log';
 
-// AIDEV-NOTE: These interfaces represent the *future* structured JSON shape.
-// Kept here for oba-ra4 refactor. Currently all tool calls return string.
+// AIDEV-NOTE: Matches the V2 server's JSON response shape for list/search tools.
 export interface Thought {
   id: string;
-  content: string;
   type?: string;
-  topics?: string[];
+  tags?: string[];
+  created: string;
+  content_raw: string;
+  content_parsed?: {
+    format: string;
+    text?: string;
+    items?: Array<{ checked: boolean; text: string }>;
+  };
   people?: string[];
-  created_at: string;
-  updated_at?: string;
+  action_items?: string[];
   similarity?: number;
 }
 
 export interface ThoughtStats {
   total: number;
-  by_type: Record<string, number>;
-  top_topics: Array<{ topic: string; count: number }>;
-  top_people: Array<{ person: string; count: number }>;
+  date_range: { earliest: string; latest: string };
+  types: Record<string, number>;
+  top_topics: Record<string, number>;
+  people: Record<string, number>;
 }
 
-// --- Tool Wrappers (all return text for now) ---
+// --- Helpers ---
+
+function parseJsonResponse<T>(raw: unknown, fallback?: T): T {
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      // Server returned text instead of JSON (e.g. "No thoughts found").
+      // If a fallback was provided, use it; otherwise throw.
+      if (fallback !== undefined) return fallback;
+      throw new McpError('Unexpected server response: could not parse JSON.', 'SERVER_ERROR');
+    }
+  }
+  return raw as T;
+}
+
+// --- Tool Wrappers ---
 
 export interface CaptureParams {
   content: string;
@@ -56,11 +77,12 @@ export interface SearchParams {
   threshold?: number;
 }
 
-export async function searchThoughts(params: SearchParams): Promise<string> {
-  const args: Record<string, unknown> = { query: params.query };
+export async function searchThoughts(params: SearchParams): Promise<Thought[]> {
+  const args: Record<string, unknown> = { query: params.query, output_format: 'json' };
   if (params.limit !== undefined) args.limit = params.limit;
   if (params.threshold !== undefined) args.threshold = params.threshold;
-  return callTool<string>('search_thoughts', args);
+  const raw = await callTool<unknown>('search_thoughts', args);
+  return parseJsonResponse<Thought[]>(raw, [] as Thought[]);
 }
 
 export interface ListParams {
@@ -71,18 +93,20 @@ export interface ListParams {
   limit?: number;
 }
 
-export async function listThoughts(params: ListParams = {}): Promise<string> {
-  const args: Record<string, unknown> = {};
+export async function listThoughts(params: ListParams = {}): Promise<Thought[]> {
+  const args: Record<string, unknown> = { output_format: 'json' };
   if (params.type) args.type = params.type;
   if (params.topic) args.topic = params.topic;
   if (params.person) args.person = params.person;
   if (params.days !== undefined) args.days = params.days;
   if (params.limit !== undefined) args.limit = params.limit;
-  return callTool<string>('list_thoughts', args);
+  const raw = await callTool<unknown>('list_thoughts', args);
+  return parseJsonResponse<Thought[]>(raw, [] as Thought[]);
 }
 
-export async function getThoughtStats(): Promise<string> {
-  return callTool<string>('thought_stats', {});
+export async function getThoughtStats(): Promise<ThoughtStats> {
+  const raw = await callTool<unknown>('thought_stats', { output_format: 'json' });
+  return parseJsonResponse<ThoughtStats>(raw);
 }
 
 export interface UpdateParams {

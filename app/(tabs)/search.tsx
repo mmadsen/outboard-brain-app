@@ -3,18 +3,17 @@ import {
   View,
   Text,
   TextInput,
-  Platform,
   Pressable,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '@/constants/Theme';
-import { searchThoughts } from '@/lib/mcp-tools';
+import { searchThoughts, Thought } from '@/lib/mcp-tools';
 import { McpError } from '@/lib/mcp-client';
+import ThoughtCard from '@/components/ThoughtCard';
 
-// AIDEV-NOTE: Search screen — sends query to searchThoughts and displays the
-// server's text response directly. Will be refactored to structured UI per oba-ra4.
+// AIDEV-NOTE: Search screen — displays structured result cards with similarity scores (oba-71d).
 
 const DEFAULT_LIMIT = 10;
 const DEFAULT_THRESHOLD = 0.2;
@@ -23,7 +22,7 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(String(DEFAULT_LIMIT));
   const [threshold, setThreshold] = useState('');
-  const [result, setResult] = useState<string | null>(null);
+  const [results, setResults] = useState<Thought[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,13 +32,13 @@ export default function SearchScreen() {
 
     setLoading(true);
     setError(null);
-    setResult(null);
+    setResults(null);
 
     try {
       const parsedLimit = parseInt(limit, 10);
       const parsedThreshold = parseFloat(threshold);
 
-      const text = await searchThoughts({
+      const data = await searchThoughts({
         query: trimmed,
         limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : DEFAULT_LIMIT,
         threshold:
@@ -48,7 +47,7 @@ export default function SearchScreen() {
             : DEFAULT_THRESHOLD,
       });
 
-      setResult(typeof text === 'string' ? text : JSON.stringify(text, null, 2));
+      setResults(Array.isArray(data) ? data : []);
     } catch (err) {
       if (err instanceof McpError) {
         setError(err.message);
@@ -61,6 +60,11 @@ export default function SearchScreen() {
   }, [query, limit, threshold]);
 
   const isSearchDisabled = query.trim().length === 0 || loading;
+
+  const renderItem = useCallback(
+    ({ item }: { item: Thought }) => <ThoughtCard thought={item} showSimilarity />,
+    [],
+  );
 
   return (
     <View style={styles.container}>
@@ -123,16 +127,25 @@ export default function SearchScreen() {
       )}
 
       {/* Results */}
-      {result !== null && !loading && (
-        <ScrollView style={styles.resultScroll} contentContainerStyle={styles.resultContent}>
-          <Text style={styles.resultText} selectable>
-            {result}
-          </Text>
-        </ScrollView>
+      {results !== null && !loading && results.length > 0 && (
+        <FlatList
+          data={results}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          style={styles.resultList}
+        />
+      )}
+
+      {/* Empty results after search */}
+      {results !== null && !loading && results.length === 0 && (
+        <View style={styles.messageContainer}>
+          <Text style={styles.emptyText}>No results found for "{query.trim()}"</Text>
+        </View>
       )}
 
       {/* Empty state before first search */}
-      {result === null && !loading && !error && (
+      {results === null && !loading && !error && (
         <View style={styles.messageContainer}>
           <Text style={styles.emptyText}>Enter a query to search your thoughts</Text>
         </View>
@@ -218,20 +231,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  resultScroll: {
+  resultList: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  resultContent: {
-    padding: spacing.lg,
-  },
-  resultText: {
-    color: colors.text,
-    fontSize: 15,
-    lineHeight: 24,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  listContent: {
+    paddingBottom: spacing.lg,
   },
 });

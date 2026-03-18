@@ -6,9 +6,10 @@ import * as SecureStore from 'expo-secure-store';
 const API_KEY_KEY = 'outboard_brain_api_key';
 const BASE_URL_KEY = 'outboard_brain_base_url';
 
-// AIDEV-NOTE: Default URL points to the production Supabase edge function.
+// AIDEV-NOTE: Default URL points to the V2 production Supabase edge function.
 // Users can override this in settings for dev/staging environments.
-const DEFAULT_BASE_URL = 'https://fgsuhmrdlejsophbumxh.supabase.co/functions/v1/open-brain-mcp';
+// AIDEV-NOTE: oba-71d — switched from V1 (open-brain-mcp) to V2 for structured JSON support.
+const DEFAULT_BASE_URL = 'https://fgsuhmrdlejsophbumxh.supabase.co/functions/v1/open-brain-mcp-v2';
 
 export async function getApiKey(): Promise<string | null> {
   return SecureStore.getItemAsync(API_KEY_KEY);

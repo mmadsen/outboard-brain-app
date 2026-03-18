@@ -71,7 +71,6 @@ export default function CaptureScreen() {
       });
 
       clearForm();
-      // Show server response text as success message
       const msg = typeof result === 'string' ? result : 'Thought captured!';
       setStatusMessage({ text: msg, isError: false });
 
