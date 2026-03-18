@@ -160,6 +160,8 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     width: 120,
+    flexGrow: 0,
+    flexShrink: 0,
     borderRightWidth: 1,
     borderRightColor: colors.border,
   },
