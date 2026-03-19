@@ -4,6 +4,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -95,6 +96,7 @@ export default function BrowseScreen() {
   const [allTags, setAllTags] = useState<string[]>([]);
   const [allProjects, setAllProjects] = useState<ProjectInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Initial load to collect all available tags and projects
@@ -154,6 +156,12 @@ export default function BrowseScreen() {
     ({ item }: { item: Thought }) => <ThoughtCard thought={item} />,
     [],
   );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadThoughts();
+    setRefreshing(false);
+  }, [loadThoughts]);
 
   const projectPickerLabel = allProjects.find((p) => p.tag === projectFilter)?.name || 'All projects';
   const tagPickerLabel = tagFilter || 'All tags';
@@ -289,6 +297,9 @@ export default function BrowseScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            }
           />
         )}
       </View>
