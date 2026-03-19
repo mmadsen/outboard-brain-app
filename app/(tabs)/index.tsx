@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.xl,
-    height: 52,
+    height: 56,
   },
   saveButtonDisabled: {
     backgroundColor: colors.surfaceLight,
